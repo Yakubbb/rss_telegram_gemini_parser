@@ -2,6 +2,7 @@ import asyncio
 import aiohttp
 import feedparser
 import listparser
+from random import shuffle
 from mongo_connector import ParsedPost
 from colorama import Fore, Style
 
@@ -61,9 +62,12 @@ async def parse_opml_and_rss(opml_file_path: str) -> list[ParsedPost]:
     print(Style.RESET_ALL + f"[RSS] Найдено {len(opml_data.feeds)} RSS-лент в OPML-файле." + Style.RESET_ALL)
     
     all_parsed_posts = []
+    feeds = opml_data.feeds
+    shuffle(feeds)
+    
 
     async with aiohttp.ClientSession() as session:
-        tasks = [fetch_and_parse_feed(session, feed_info) for feed_info in opml_data.feeds]
+        tasks = [fetch_and_parse_feed(session, feed_info) for feed_info in feeds]
         results = await asyncio.gather(*tasks)
 
         for post_list in results:
@@ -71,9 +75,3 @@ async def parse_opml_and_rss(opml_file_path: str) -> list[ParsedPost]:
 
     return all_parsed_posts
 
-if __name__ == "__main__":
-    opml_file = 'subscriptions.opml'
-    
-    parsed_data = asyncio.run(parse_opml_and_rss(opml_file))
-    
-    print(Style.BRIGHT + Fore.GREEN + f"\n[ИТОГ] Всего спарсено постов: {len(parsed_data)}")

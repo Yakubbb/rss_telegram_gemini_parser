@@ -1,5 +1,6 @@
 import json
 import os
+from colorama import Fore, Style
 from dotenv import load_dotenv
 from mongo_connector import ParsedPost
 from google.generativeai import GenerativeModel, configure
@@ -62,8 +63,27 @@ class GeminiProvider:
         if response.candidates and response.candidates[0].content.parts:
             gemini_output_text = response.candidates[0].content.parts[0].text
             print(f'[GEMINI] Ответ от модели: {gemini_output_text}')
-            categories_titles = json.loads(gemini_output_text)
             
+            isParsed = False
+            textBuff = gemini_output_text
+            categories_titles = []
+            
+            while not isParsed and textBuff:
+                try:
+                    categories_titles = json.loads(textBuff)
+                    isParsed = True
+                    print("[GEMINI] Строка успешно разобрана.")
+                except json.JSONDecodeError as e:
+                    print(Fore.RED + f"[GEMINI] Ошибка при разборе JSON {e}" + Style.RESET_ALL)
+                    potential_fix = textBuff + ']'
+                    try:
+                        categories_titles = json.loads(potential_fix)
+                        isParsed = True
+                        textBuff = potential_fix
+                        print("[GEMINI] Строка успешно исправлена и разобрана.")
+                    except json.JSONDecodeError:
+                        textBuff = textBuff[:-1]
+                   
             new_posts = []
             
             for cat in categories_titles:
@@ -78,7 +98,7 @@ class GeminiProvider:
             return new_posts
                     
         else:
-            print('[GEMINI] Ошибка: Нет ответа от модели или неверный формат ответа.')
+            print(Fore.RED + '[GEMINI] Ошибка: Нет ответа от модели или неверный формат ответа.' + Style.RESET_ALL)
             return []
                 
                 

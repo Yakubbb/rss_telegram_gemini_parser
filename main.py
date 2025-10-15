@@ -31,8 +31,8 @@ def parse_all_posts() -> list[ParsedPost]:
     seconds = int(elapsed_time % 60)
     
     print('\n\n')
-    print(f'Время на парсинг: {minutes} мин. {seconds} сек.')
-    print(f'Всего новостей получено с источников: {len(parsed_posts)}\n Из rss: {len(parsed_rss)}\n Из тг: {len(parsed_tg)}\n Количество источников: {len(sources)}')
+    print(f'[MAIN] Время на парсинг: {minutes} мин. {seconds} сек.')
+    print(f'[MAIN] Всего новостей получено с источников: {len(parsed_posts)}\n Из rss: {len(parsed_rss)}\n Из тг: {len(parsed_tg)}\n Количество источников: {len(sources)}')
     
     return parsed_posts
 
@@ -46,27 +46,30 @@ POST_QUEUE = []
 
 def main_loop():
     global POST_QUEUE
-    if len(POST_QUEUE) < 10:
-        update_global_queue()
+    try:
+        if len(POST_QUEUE) < 10:
+            update_global_queue()
+        print(Fore.MAGENTA +f'[MAIN] Новостей в очереди: {len(POST_QUEUE)}' + Style.RESET_ALL)
+        selected_posts = POST_QUEUE[-100:]
+        avalible_categories = get_avalible_categories()
+        avalible_events = get_avalible_events()
         
-    print(Fore.MAGENTA +f'[MAIN] Новостей в очереди: {len(POST_QUEUE)}' + Style.RESET_ALL)
-    selected_posts = POST_QUEUE[-100:]
-    avalible_categories = get_avalible_categories()
-    avalible_events = get_avalible_events()
-    
-    system_prompt = GeminiProvider.create_system_prompt(avalible_events,avalible_categories)
-    user_prompt = GeminiProvider.create_user_prompt(selected_posts)
-    gemini_answer = GeminiProvider.group_posts_with_gemini(user_prompt,system_prompt,selected_posts)
-    if len(gemini_answer) > 0:
-        insert_new_posts(gemini_answer)
-        for post in selected_posts: POST_QUEUE.remove(post)
+        system_prompt = GeminiProvider.create_system_prompt(avalible_events,avalible_categories)
+        user_prompt = GeminiProvider.create_user_prompt(selected_posts)
+        gemini_answer = GeminiProvider.group_posts_with_gemini(user_prompt,system_prompt,selected_posts)
         
-schedule.every(30).seconds.do(main_loop)
+        if len(gemini_answer) > 0:
+            insert_new_posts(gemini_answer)
+            for post in selected_posts: POST_QUEUE.remove(post)
+    except Exception as e:
+        print(Fore.RED + f'[MAIN] Ошибка в основном цикле: {e}' + Style.RESET_ALL)
+        
+schedule.every(1).minute.do(main_loop)
 
 if __name__ == "__main__":
     while True:
         schedule.run_pending()
-        time.sleep(10) 
+        time.sleep(60) 
     
 
 

@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timedelta
+from colorama import Fore, Style
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from bson.objectid import ObjectId
@@ -36,10 +37,23 @@ class ParsedPost:
 
 
 def select_only_new_posts(posts:list[ParsedPost]):
-    
-    collection_items = get_all_posts()
-    existing_links = {item['link_html'] for item in collection_items}
-    not_existing_posts = [post for post in posts if post.link_html not in existing_links]
+    try:
+        
+        collection_items = get_all_posts()
+        existing_links = []
+        
+        for item in collection_items:
+            if 'link_html' not in item:
+                print(Fore.YELLOW  + f"[MONGO] Предупреждение: документ с _id {item.get('_id')} не содержит поле 'link_html'." + Style.RESET_ALL)
+            else:
+                existing_links.append(item['link_html'])
+                
+        not_existing_posts = [post for post in posts if post.link_html not in existing_links]
+        print(f"[MONGO] Из {len(posts)} новостей  новых только: {len(not_existing_posts)}")
+        
+    except Exception as e:
+        print(Fore.RED + f"[MONGO] Ошибка при парсинге из MongoDB: {e}" + Style.RESET_ALL)
+        not_existing_posts = []
     
     return not_existing_posts
 
@@ -47,9 +61,11 @@ def insert_new_posts(posts_with_categories:list[ParsedPost]):
     
     expires_at = datetime.now() + timedelta(days=1)
     
+    new_posts = select_only_new_posts(posts_with_categories)
     posts_to_insert =[]
     
-    for post in posts_with_categories:
+    
+    for post in new_posts:
         posts_to_insert.append(
             {
                 "title":post.title,

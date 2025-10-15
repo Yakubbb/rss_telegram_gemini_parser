@@ -1,6 +1,7 @@
 import asyncio
 import json
 import aiohttp
+from random import shuffle
 import aiofiles
 from bs4 import BeautifulSoup
 from mongo_connector import ParsedPost
@@ -50,7 +51,7 @@ async def parse_tg(json_file_path: str) -> list[ParsedPost]:
     try:
         async with aiofiles.open(json_file_path, 'r', encoding='utf-8') as f:
             content = await f.read()
-            urls = json.loads(content)
+            urls:list[str] = json.loads(content)
     except FileNotFoundError:
         print(Fore.RED + f"[TELEGRAM] Ошибка: Файл {json_file_path} не найден.")
         return []
@@ -59,9 +60,10 @@ async def parse_tg(json_file_path: str) -> list[ParsedPost]:
         return []
 
     all_parsed_posts = []
+    shuffle(urls)
     
     async with aiohttp.ClientSession() as session:
-        tasks = [fetch_and_parse_url(session, url) for url in urls]
+        tasks = [fetch_and_parse_url(session, url) for url in  urls]
         results = await asyncio.gather(*tasks)
         
         for post_list in results:
