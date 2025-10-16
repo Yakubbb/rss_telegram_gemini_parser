@@ -3,7 +3,7 @@ import random
 import time
 from rss import parse_opml_and_rss
 from telegram import parse_tg
-from mongo_connector import ParsedPost, get_avalible_categories, get_avalible_events, select_only_new_posts,insert_new_posts
+from mongo_connector import ParsedPost, get_avalible_categories, get_avalible_events, get_avalible_persons, select_only_new_posts,insert_new_posts
 from gemini_provider import GeminiProvider
 from concurrent.futures import ThreadPoolExecutor
 from colorama import Fore, Style
@@ -21,7 +21,7 @@ def parse_all_posts() -> list[ParsedPost]:
     parsed_rss = asyncio.run(parse_opml_and_rss(opml_file))
     
     
-    parsed_posts = parsed_tg + parsed_rss
+    parsed_posts = list(set(parsed_tg + parsed_rss))
     
     sources = set([post.source for post in parsed_posts])
     
@@ -51,10 +51,12 @@ def main_loop():
             update_global_queue()
         print(Fore.MAGENTA +f'[MAIN] Новостей в очереди: {len(POST_QUEUE)}' + Style.RESET_ALL)
         selected_posts = POST_QUEUE[-100:]
+        
         avalible_categories = get_avalible_categories()
         avalible_events = get_avalible_events()
+        avalible_persons = get_avalible_persons()
         
-        system_prompt = GeminiProvider.create_system_prompt(avalible_events,avalible_categories)
+        system_prompt = GeminiProvider.create_system_prompt(avalible_events,avalible_categories,avalible_persons)
         user_prompt = GeminiProvider.create_user_prompt(selected_posts)
         gemini_answer = GeminiProvider.group_posts_with_gemini(user_prompt,system_prompt,selected_posts)
         

@@ -28,6 +28,9 @@ class ParsedPost:
     def setCategories(self, categories:list[str]):
         self.categories = categories if len(categories)>0 else []
         
+    def setPersons(self, persons:list[str]):
+        self.persons = persons if len(persons)>0 else []
+
     def setEvent(self, event:str):
         self.event = event
             
@@ -105,6 +108,13 @@ def get_avalible_events():
         if "event" in doc and doc["event"]:
             events.append(doc["event"])
     return list(set(events))
+
+def get_avalible_persons():
+    all_categories = []
+    for doc in collection.find({}, {"persons": 1}):
+        if "persons" in doc and doc["persons"]:
+            all_categories.extend(doc["persons"])     
+    return list(set(all_categories))
 
 
 
